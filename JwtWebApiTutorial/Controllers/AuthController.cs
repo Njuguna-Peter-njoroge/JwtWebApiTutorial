@@ -30,13 +30,7 @@ namespace JwtWebApiTutorial.Controllers
             var userName = _userService.GetMyName();
             return Ok(userName);
 
-            //var userName = User?.Identity?.Name;
-            //var userName2 = User.FindFirstValue(ClaimTypes.Name);
-            //var role = User.FindFirstValue(ClaimTypes.Role);
-
-
-
-            //return Ok(new {userName, userName2, role});
+           
         }
 
         [HttpPost("register")]
@@ -44,7 +38,7 @@ namespace JwtWebApiTutorial.Controllers
         {
             CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] PasswordSalt);
 
-            user.Username = request.Username;
+            user.Username = request.Username; 
             user.PasswordHash = passwordHash;
             user.PasswordSalt = PasswordSalt;
 
@@ -68,7 +62,40 @@ namespace JwtWebApiTutorial.Controllers
 
 
             string token = createToken(user);
+            var refreshToken = GenerateRefreshToken();
+            setRefreshToken(refreshToken);
             return Ok(token);
+        }
+
+        private refreshToken GenerateRefreshToken()
+        {
+            var refreshToken = new refreshToken()
+            {
+                Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+                Expires = DateTime.Now.AddDays(7),
+                Created = DateTime.Now
+            };
+
+            return refreshToken;
+        }
+
+
+        private void setRefreshToken(refreshToken newRefreshToken)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = newRefreshToken.Expires
+            };
+
+
+            Response.Cookies.Append("refrshToken", newRefreshToken.Token, cookieOptions);
+
+            user.RefreshToken = newRefreshToken.Token;
+            user.TokenExpires = newRefreshToken.Expires;
+            user.TokenCreated = newRefreshToken.Created;
+
+
         }
 
 
